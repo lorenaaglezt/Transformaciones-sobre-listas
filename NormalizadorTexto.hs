@@ -1,510 +1,468 @@
 -- NORMALIZACIÓN DE TEXTO
+-- 
+
 module TextNormalizer where
 
 import Data.Char (toLower, toUpper, isAlpha, isSpace)
 import Data.List (intercalate)
 
 
--- PARTE 1: TRANSFORMACIONES ATÓMICAS
-
+--------------------------------------------------------------------------
+-- TRANSFORMACIONES ATÓMICAS
+--------------------------------------------------------------------------
 
 -- Convertir a minúsculas.
--- CONCEPTO: Aplicación parcial
--- La función 'map' está currificada: map :: (a -> b) -> [a] -> [b]
--- Al aplicar solo 'toLower', obtenemos una nueva función: String -> String
--- POINT-FREE: No mencionamos el parámetro String
+{-
+  map :: (Char -> Char) -> String -> String
+  toLower :: Char -> Char
+  map toLower :: String -> String (aplicación parcial)
+-} 
 aMinusculas :: String -> String
 aMinusculas = map toLower
-{- EXPLICACIÓN:
-   map :: (Char -> Char) -> String -> String
-   toLower :: Char -> Char
-   map toLower :: String -> String (aplicación parcial)
--}
 
--- | Convertir a mayúsculas
--- CONCEPTO: Aplicación parcial (igual que aMinusculas)
--- Point-free style: definimos la función sin mencionar argumentos
+-- Convertir a mayúsculas
+-- Aplicación parcial (igual que aMinusculas)
 aMayusculas :: String -> String
 aMayusculas = map toUpper
 
--- | Eliminar espacios extra
--- CONCEPTO: Composición de funciones (.)
--- words :: String -> [String] (divide por espacios)
--- unwords :: [String] -> String (une con espacios)
--- Composición: primero words, luego unwords
+-- Eliminar espacios extra
+{-
+  words :: String -> [String] (divide por espacios)
+  unwords :: [String] -> String (une con espacios)
+  Composición: (unwords . words) texto = unwords (words texto)
+-}
 eliminarEspaciosExtra :: String -> String
 eliminarEspaciosExtra = unwords . words
-{- EXPLICACIÓN:
-   (f . g) x = f (g x)
-   (unwords . words) texto = unwords (words texto)
-   Point-free: no mencionamos 'texto'
--}
 
--- | Filtrar solo caracteres alfabéticos y espacios
--- CONCEPTO: Lambda anónima + Aplicación parcial
--- filter :: (a -> Bool) -> [a] -> [a] (currificada)
--- Aplicamos parcialmente filter con una lambda
+-- Filtrar solo caracteres alfabéticos y espacios
+{-
+  filter :: (a -> Bool) -> [a] -> [a] (currificada)
+  Aplicamos parcialmente filter con una lambda
+-}
 soloAlfabeticos :: String -> String
 soloAlfabeticos = filter (\c -> isAlpha c || isSpace c)
-{- EXPLICACIÓN:
-   \c -> ... es una lambda anónima (función sin nombre)
-   filter toma el predicado y devuelve: String -> String
-   Aplicación parcial de filter
--}
 
--- | Eliminar todas las vocales
--- CONCEPTO: Lambda anónima + Aplicación parcial
--- Similar a soloAlfabeticos pero con lógica diferente
+-- Eliminar todas las vocales
+{-
+  Similar a soloAlfabeticos pero aquí la lambda verifica si el caracter
+  no está en la lista de vocales. Se aplica parcialmente filter.
+-}
 sinVocales :: String -> String
 sinVocales = filter (\c -> not (c `elem` "aeiouAEIOU"))
-{- EXPLICACIÓN:
-   Lambda verifica si el carácter NO está en la lista de vocales
-   filter aplica este predicado a cada carácter
--}
 
--- | Invertir cada palabra individualmente
--- CONCEPTO: Composición triple de funciones
--- Pipeline: words -> map reverse -> unwords
+-- Invertir cada palabra individualmente
+{-
+  words: divide en palabras
+  map reverse: invierte cada palabra
+  unwords: une de nuevo
+  Composición triple de funciones: (unwords . (map reverse . words))
+-}
 invertirPalabras :: String -> String
 invertirPalabras = unwords . map reverse . words
-{- EXPLICACIÓN:
-   (f . g . h) x = f (g (h x))
-   words: divide en palabras
-   map reverse: invierte cada palabra
-   unwords: une de nuevo
-   Composición asociativa: (unwords . (map reverse . words))
--}
 
--- | Capitalizar primera letra de cada palabra
--- CONCEPTO: Lambda anónima compleja + Composición + Pattern matching
--- Usa case para manejar listas vacías y no vacías
+-- Capitalizar primera letra de cada palabra
+{-
+  Usa case para manejar listas vacías y no vacías
+  Composición: words -> map (lambda) -> unwords
+-}
 capitalizarPalabras :: String -> String
 capitalizarPalabras = unwords . map (\s -> case s of
   [] -> []
   (x:xs) -> toUpper x : map toLower xs) . words
-{- EXPLICACIÓN:
-   Lambda anónima con pattern matching en case
-   Composición: words -> map (lambda) -> unwords
-   La lambda transforma cada palabra independientemente
+
+
+
+
+------------------------------------------------------------------------
+-- COMPOSICIONES
+------------------------------------------------------------------------
+
+-- Normalización básica: minúsculas + sin espacios extra
+{-
+  Composición de funciones aMinuscula y eliminarEspaciosExtra
+  texto -> aMinusculas -> eliminarEspaciosExtra -> resultado
 -}
-
--- ============================================
--- PARTE 2: COMPOSICIONES COMPLEJAS
--- Construcción de pipelines mediante composición
--- ============================================
-
--- | Normalización básica: minúsculas + sin espacios extra
--- CONCEPTO: Composición binaria de funciones
--- Compone dos transformaciones previamente definidas
 normalizacionBasica :: String -> String
 normalizacionBasica = eliminarEspaciosExtra . aMinusculas
-{- EXPLICACIÓN:
-   Primero: aMinusculas convierte a minúsculas
-   Segundo: eliminarEspaciosExtra normaliza espacios
-   Flujo: texto -> aMinusculas -> eliminarEspaciosExtra -> resultado
--}
 
--- | Normalización estricta: solo alfabéticos + minúsculas + sin espacios
--- CONCEPTO: Composición ternaria
--- Encadena tres transformaciones en un pipeline
+-- Normalización estricta: solo alfabéticos + minúsculas + sin espacios
+{-
+  Composición de tres funciones: primero se aplica soloAlfabeticos, 
+  después aMinusculas y por último eliminarEspaciosExtra
+-}
 normalizacionEstricta :: String -> String
 normalizacionEstricta = eliminarEspaciosExtra . aMinusculas . soloAlfabeticos
-{- EXPLICACIÓN:
-   Composición asociativa de 3 funciones:
-   (f . g . h) = f . (g . h) = (f . g) . h
-   Orden de ejecución (derecha a izquierda):
-   1. soloAlfabeticos: filtra caracteres
-   2. aMinusculas: convierte a minúsculas
-   3. eliminarEspaciosExtra: normaliza espacios
--}
 
--- | Normalización para títulos
--- CONCEPTO: Composición ternaria con orden diferente
--- Demuestra que el orden de composición importa
+-- Normalización para títulos
+{-
+  Composición ternaria
+  filtrar -> capitalizar -> limpiar espacios
+-}
 normalizacionTitulo :: String -> String
 normalizacionTitulo = eliminarEspaciosExtra . capitalizarPalabras . soloAlfabeticos
-{- EXPLICACIÓN:
-   Diferente orden produce diferente resultado
-   Pipeline: filtrar -> capitalizar -> limpiar espacios
+
+-- Reversa sin Vocales: mayúsculas sin vocales de palabras invertidas
+-- Composición de funciones ternaria
+reversaSinVocales :: String -> String
+reversaSinVocales = aMayusculas . sinVocales . invertirPalabras
+
+
+
+
+----------------------------------------------------------------------------
+-- COMBINADORES DE ORDEN SUPERIOR
+----------------------------------------------------------------------------
+
+-- Pipeline: componer dinámicamente una lista de funciones
+{-
+  foldr :: (a -> b -> b) -> b -> [a] -> b
+  Usa (.) como operador binario y 'id' como caso base
+  Aplicamos parcialmente foldr con (.) y id
+  Resultado: función que espera lista de funciones
+  Devuelve la composición de todas ellas
 -}
-
--- | Codificación divertida: mayúsculas sin vocales de palabras invertidas
--- CONCEPTO: Composición ternaria compleja
--- Demuestra composición de transformaciones no conmutativas
-codificacionDivertida :: String -> String
-codificacionDivertida = aMayusculas . sinVocales . invertirPalabras
-{- EXPLICACIÓN:
-   El orden es crucial - diferentes órdenes dan resultados diferentes
-   1. invertirPalabras: "Hola" -> "aloH"
-   2. sinVocales: "aloH" -> "lH"
-   3. aMayusculas: "lH" -> "LH"
--}
-
--- ============================================
--- PARTE 3: COMBINADORES DE ORDEN SUPERIOR
--- Metaprogramación funcional
--- ============================================
-
--- | Pipeline: componer dinámicamente una lista de funciones
--- CONCEPTO: Lógica combinatoria + Reducción (foldr)
--- foldr :: (a -> b -> b) -> b -> [a] -> b
--- Usa (.) como operador binario y 'id' como caso base
 pipeline :: [String -> String] -> String -> String
 pipeline = foldr (.) id
-{- EXPLICACIÓN PROFUNDA:
-   foldr (.) id [f, g, h]
-   = f . (g . (h . id))
-   = f . g . h
-   
-   CURRIFICACIÓN:
-   foldr :: (a -> b -> b) -> b -> [a] -> b
-   foldr (.) :: (String -> String) -> [String -> String] -> (String -> String)
-   foldr (.) id :: [String -> String] -> (String -> String)
-   
-   APLICACIÓN PARCIAL:
-   - Aplicamos parcialmente foldr con (.) y id
-   - Resultado: función que espera lista de funciones
-   - Devuelve la composición de todas ellas
--}
 
--- | Aplicar transformación N veces
--- CONCEPTO: Recursión + Composición + Lambda
--- Construye f . f . f . ... . f (N veces)
-aplicarN :: Int -> (a -> a) -> (a -> a)
-aplicarN = \n -> \f -> if n <= 0 
-  then id 
-  else f . aplicarN (n-1) f
-{- EXPLICACIÓN:
-   CURRIFICACIÓN EXPLÍCITA con lambdas anidadas:
-   \n -> \f -> ... muestra la currificación explícitamente
-   
-   RECURSIÓN:
-   aplicarN 0 f = id (caso base)
-   aplicarN n f = f . (aplicarN (n-1) f) (caso recursivo)
-   
-   COMPOSICIÓN RECURSIVA:
-   aplicarN 3 f = f . (f . (f . id))
-   
-   EJEMPLO:
-   aplicarN 2 invertirPalabras "Hola"
+-- Aplicar transformación N veces
+{-
+  Construye f . f . f . ... . f (N veces)
+  Currificación explícita, \n -> \f -> ...
+
+  Implementa recursión:
+  aplicarN 0 f = id (caso base)
+  aplicarN n f = f . (aplicarN (n-1) f) (caso recursivo)
+
+  Ejemplo:
+  aplicarN 2 invertirPalabras "Hola"
    = (invertirPalabras . invertirPalabras) "Hola"
    = invertirPalabras (invertirPalabras "Hola")
    = invertirPalabras "aloH"
    = "Hola" (doble inversión = identidad)
 -}
+aplicarN :: Int -> (a -> a) -> (a -> a)
+aplicarN = \n -> \f -> if n <= 0 
+  then id 
+  else f . aplicarN (n-1) f
 
--- | Aplicación condicional
--- CONCEPTO: Lambda de orden superior + Aplicación condicional
--- Combina predicado, transformación y lógica condicional
+-- Aplicación condicional
+{-
+  Currificación explícita con tres lambdas: \pred -> (\trans -> (\x -> ...))
+  Combina predicados y transformaciones, si el predicado es verdadero entonces
+  aplica la transformación, de otro modo, no realiza cambios
+
+  aplicarSi :: (a -> Bool) -> ((a -> a) -> (a -> a))
+  aplicarSi pred :: (a -> a) -> (a -> a)
+  aplicarSi pred trans :: a -> a
+-}
 aplicarSi :: (a -> Bool) -> (a -> a) -> (a -> a)
 aplicarSi = \pred -> \trans -> \x -> if pred x then trans x else x
-{- EXPLICACIÓN:
-   CURRIFICACIÓN EXPLÍCITA con tres lambdas:
-   \pred -> (\trans -> (\x -> ...))
-   
-   Cada lambda devuelve otra función:
-   aplicarSi :: (a -> Bool) -> ((a -> a) -> (a -> a))
-   aplicarSi pred :: (a -> a) -> (a -> a)
-   aplicarSi pred trans :: a -> a
-   
-   LÓGICA COMBINATORIA:
-   Combina un predicado y una transformación
-   Si el predicado es verdadero, aplica transformación
-   Si no, devuelve el valor sin cambios (id)
--}
 
--- | Bifurcación: aplicar dos funciones y combinar resultados
--- CONCEPTO: Lambda compleja + Aplicación paralela
--- Patrón común en programación funcional (fanout)
+-- Bifurcación: aplicar dos funciones y combinar resultados
+{-
+  Currificación de 4 argumentos
+  Aplica dos funciones al mismo tiempo a un valor y combina los resultados
+-}
 bifurcar :: (b -> c -> d) -> (a -> b) -> (a -> c) -> (a -> d)
 bifurcar = \combinar -> \f -> \g -> \x -> combinar (f x) (g x)
-{- EXPLICACIÓN:
-   CURRIFICACIÓN de 4 argumentos:
-   bifurcar combinar f g x = combinar (f x) (g x)
-   
-   PATRÓN FANOUT:
-        x
-       / \
-      f   g
-       \ /
-     combinar
-   
-   EJEMPLO:
-   bifurcar (++) (map toUpper) (map toLower) "Hola"
-   = (++) (map toUpper "Hola") (map toLower "Hola")
-   = (++) "HOLA" "hola"
-   = "HOLAhola"
-   
-   Aplica dos transformaciones al mismo input
-   Luego combina los dos resultados
+
+
+
+
+-----------------------------------------------------------------------
+-- TRANSFORMACIONES SOBRE LISTAS
+-----------------------------------------------------------------------
+
+-- Normalizar estrictamente toda la lista
+{-
+  Aplicación parcial de map (que está currificada), 
+  fijamos únicamente el primer argumento
+  map :: (a -> b) -> [a] -> [b]
+  map normalizacionEstricta :: [String] -> [String]
+  Un corpus es una colección de textos, es decir, una lista de cadenas
 -}
-
--- ============================================
--- PARTE 4: TRANSFORMACIONES SOBRE LISTAS
--- Aplicación de transformaciones a colecciones
--- ============================================
-
--- | Normalizar un corpus completo
--- CONCEPTO: Aplicación parcial de map
--- map está currificada, aplicamos parcialmente la transformación
 normalizarCorpus :: [String] -> [String]
 normalizarCorpus = map normalizacionEstricta
-{- EXPLICACIÓN:
-   map :: (a -> b) -> [a] -> [b]
-   map normalizacionEstricta :: [String] -> [String]
-   
-   APLICACIÓN PARCIAL:
-   normalizarCorpus es simplemente map con el primer argumento fijado
-   Point-free: no mencionamos la lista de strings
--}
 
--- | Procesar con múltiples variantes
--- CONCEPTO: Lambda que construye lista + map
--- Aplica múltiples transformaciones a cada elemento
+-- Procesar con múltiples variantes
+{-
+  Aplica múltiples transformaciones a cada elemento
+  La lambda genera una lista de resultados para cada texto
+  map aplica la lambda a cada elemento del corpus
+  El resultado es una lista de listas (una matriz) y cada fila contiene 4 variantes
+  del texto original
+  Las variantes son las que definimos: básica, estricya, de título y reversa sin vocales
+-}
 procesarConVariantes :: [String] -> [[String]]
 procesarConVariantes = map (\texto -> [
     normalizacionBasica texto,
     normalizacionEstricta texto,
     normalizacionTitulo texto,
-    codificacionDivertida texto
+    reversaSinVocales texto
   ])
-{- EXPLICACIÓN:
-   Lambda genera una lista de resultados para cada texto
-   map aplica esta lambda a cada elemento del corpus
-   
-   RESULTADO: Lista de listas (matriz)
-   Cada fila contiene 4 variantes del texto original
--}
 
--- | Filtrar por longitud mínima con normalización
+-- Filtrar por longitud mínima con normalización
+{-
+  Recibe la longitud de los strings que se deben eliminar, la lista de cadenas
+  y devuelve una lista de cadenas normalizadas y que no contienen cadenas menores
+  a la longitud definida.
+
+  Con currificación, tomamos el mínimo primero, \minLen -> ...
+  Primero map normalizada cada string y luego filter elimina strings cortos
+  Aplicación parcial en filter :: (a -> Bool) -> [a] -> [a] con filter predicado :: [a] -> [a]
+-}
 -- CONCEPTO: Composición de filter y map + Composición de predicado
 -- Pipeline: normalizar -> filtrar por longitud
 filtrarPorLongitud :: Int -> [String] -> [String]
 filtrarPorLongitud = \minLen -> filter ((>= minLen) . length) . map normalizacionBasica
-{- EXPLICACIÓN DETALLADA:
-   COMPOSICIÓN DEL PREDICADO:
-   (>= minLen) :: Int -> Bool (aplicación parcial de >=)
-   length :: String -> Int
-   (>= minLen) . length :: String -> Bool (composición)
-   
-   APLICACIÓN PARCIAL:
-   filter :: (a -> Bool) -> [a] -> [a]
-   filter predicado :: [a] -> [a]
-   
-   COMPOSICIÓN PRINCIPAL:
-   filter predicado . map normalizacionBasica
-   Primero: map normaliza cada string
-   Segundo: filter elimina strings cortos
-   
-   CURRIFICACIÓN EXPLÍCITA:
-   \minLen -> ... muestra que tomamos el mínimo primero
-   Luego devolvemos una función que procesa listas
+
+
+
+
+-------------------------------------------------------------------------------
+-- EJEMPLOS DE COMPOSICIÓN AVANZADA
+--------------------------------------------------------------------------------
+
+-- Ejemplo 1: Composición funcional
+{-
+  filtrar solo alfabéticos -> minúsculas -> limpiar espacios
 -}
-
--- ============================================
--- PARTE 5: EJEMPLOS DE COMPOSICIÓN AVANZADA
--- ============================================
-
--- | Ejemplo 1: Composición ternaria simple
--- CONCEPTO: Composición point-free de tres funciones
 ejemplo1 :: String -> String
 ejemplo1 = eliminarEspaciosExtra . aMinusculas . soloAlfabeticos
-{- Pipeline claro y legible:
-   filtrar -> minúsculas -> limpiar espacios
--}
 
--- | Ejemplo 2: Uso de pipeline dinámico
--- CONCEPTO: Metaprogramación - composición de lista de funciones
+-- Ejemplo 2: Uso de pipeline
+{-
+  Implementa la composición de lista de funciones
+  pipeline usa foldr (.) id para componer la lista
+  Equivalente a eliminarEspaciosExtra . capitalizarPalabras . soloAlfabeticos
+-}
 ejemplo2 :: String -> String
 ejemplo2 = pipeline [eliminarEspaciosExtra, capitalizarPalabras, soloAlfabeticos]
-{- EXPLICACIÓN:
-   pipeline usa foldr (.) id para componer la lista
-   Equivalente a: eliminarEspaciosExtra . capitalizarPalabras . soloAlfabeticos
-   Ventaja: la lista puede construirse dinámicamente en runtime
--}
 
--- | Ejemplo 3: Aplicación condicional
--- CONCEPTO: Combinador aplicarSi con lambda de predicado
+-- Ejemplo 3: Aplicación condicional
+{-
+  Aplicación del combinador aplicarSi con una lambda de predicado
+  Solo convierte a mayúsculas si el string tiene más de 10 caracteres
+-}
 ejemplo3 :: String -> String
 ejemplo3 = aplicarSi (\s -> length s > 10) aMayusculas
-{- EXPLICACIÓN:
-   Solo convierte a mayúsculas si el string tiene más de 10 caracteres
-   Si no, devuelve el string sin modificar
-   Demuestra composición de lógica condicional
--}
 
--- | Ejemplo 4: Aplicación repetida
--- CONCEPTO: Recursión controlada mediante aplicarN
+-- Ejemplo 4: Aplicación repetida
+{-
+  Invierte palabras dos veces, dejando la misma palabra original (como la identidad)
+-}
 ejemplo4 :: String -> String
 ejemplo4 = aplicarN 2 invertirPalabras
-{- EXPLICACIÓN:
-   Invierte palabras dos veces = identidad
-   aplicarN 2 f = f . f
-   Demuestra propiedades algebraicas de funciones
--}
 
--- | Ejemplo 5: Bifurcación con combinación
--- CONCEPTO: Procesamiento paralelo con bifurcar
+-- Ejemplo 5: Bifurcación con combinación
+{-
+  Aplica dos funciones a la misma cadena: normalización básica y el cálculo de la longitud original
+  Combina los resultados en un string
+-}
 ejemplo5 :: String -> String
 ejemplo5 = bifurcar 
   (\normalizado -> \longitud -> normalizado ++ " [" ++ show longitud ++ " chars]")
   normalizacionBasica 
   length
-{- EXPLICACIÓN:
-   Aplica dos funciones al mismo input:
-   - normalizacionBasica: transforma el texto
-   - length: calcula la longitud original
-   Luego combina ambos resultados en un string anotado
-   
-   PATRÓN: Enriquecer resultados con metadatos
+
+
+
+
+-------------------------------------------------------------------------------
+-- OTRAS COMPOSICIONES
+-------------------------------------------------------------------------------
+
+-- Composición de 5 funciones
+{-
+  La composición escala a cualquier número de funciones
+  1. invertirPalabras: "Hola Mundo" -> "aloH odnuM"
+  2. soloAlfabeticos: "aloH odnuM" -> "aloH odnuM"
+  3. sinVocales: "aloH odnuM" -> "lH dnM"
+  4. aMayusculas: "lH dnM" -> "LH DNM"
+  5. eliminarEspaciosExtra: "LH DNM" -> "LH DNM"
 -}
-
--- ============================================
--- PARTE 6: COMPOSICIONES EXTREMAS
--- Demostraciones de composición compleja
--- ============================================
-
--- | Composición de 5 funciones
--- CONCEPTO: Composición n-aria
--- Demuestra que la composición escala a cualquier número de funciones
-transformacionCompleja1 :: String -> String
-transformacionCompleja1 = 
+transformacionCompleja :: String -> String
+transformacionCompleja = 
   eliminarEspaciosExtra . 
   aMayusculas . 
   sinVocales . 
   soloAlfabeticos . 
   invertirPalabras
-{- EXPLICACIÓN:
-   Pipeline de 5 etapas:
-   1. invertirPalabras: "Hola Mundo" -> "aloH odnuM"
-   2. soloAlfabeticos: "aloH odnuM" -> "aloH odnuM"
-   3. sinVocales: "aloH odnuM" -> "lH dnM"
-   4. aMayusculas: "lH dnM" -> "LH DNM"
-   5. eliminarEspaciosExtra: "LH DNM" -> "LH DNM"
-   
-   Demuestra composición asociativa:
-   ((((f . g) . h) . i) . j) = f . g . h . i . j
--}
 
--- | Pipeline dinámico equivalente
--- CONCEPTO: Construcción dinámica vs estática
--- Mismo resultado, diferente construcción
-transformacionCompleja2 :: String -> String
-transformacionCompleja2 = pipeline [
-  eliminarEspaciosExtra,
-  aMayusculas,
-  sinVocales,
-  soloAlfabeticos,
-  invertirPalabras
-  ]
-{- EXPLICACIÓN:
-   Funcionalmente idéntico a transformacionCompleja1
-   Diferencia: la lista puede construirse en runtime
-   Ventaja: más flexible para configuración dinámica
+-- Composición con aplicación condicional anidada
+{-
+  Podemos aplicar la función aplicarSi que toma un predicado y una transformación
+  donde la transformación sea una composición de dos funciones.
+  Podemos ver la composición dentro de combinadores.
+  Esta transformación si la cadena que recibe es de longitud mayor a 5, entonces
+  elimina los espacios y luego aplica mayúsculas.
 -}
-
--- | Composición con aplicación condicional anidada
--- CONCEPTO: Composición de combinadores
 transformacionCondicionalCompuesta :: String -> String
 transformacionCondicionalCompuesta = 
   aplicarSi (\s -> length s > 5) (aMayusculas . eliminarEspaciosExtra)
-{- EXPLICACIÓN:
-   Condicional con transformación compuesta:
-   Si length > 5: aplica (aMayusculas . eliminarEspaciosExtra)
-   Si no: devuelve string original
-   
-   Demuestra composición dentro de combinadores
--}
 
--- | Bifurcación con composiciones en cada rama
--- CONCEPTO: Composición dentro de bifurcación
+-- Bifurcación con composiciones en cada rama
+{-
+  Podemos aplicar composiciones dentro de la bifurcación.
+  La primera rama aplica la composición soloAlfabeticos . aMayusculas
+  La segunda rama aplica la composición aMinusculas . sinVocales
+  La lambda indica que los resultados se concatenan con " | " como separador
+-}
 transformacionBifurcada :: String -> String
 transformacionBifurcada = bifurcar
   (\parte1 -> \parte2 -> parte1 ++ " | " ++ parte2)
   (aMayusculas . soloAlfabeticos)
   (sinVocales . aMinusculas)
-{- EXPLICACIÓN:
-   Rama 1: soloAlfabeticos . aMayusculas
-   Rama 2: aMinusculas . sinVocales
-   Combina: concatena con " | " como separador
-   
-   EJEMPLO:
-   "Hola123 Mundo"
-   Rama 1: "HOLA MUNDO"
-   Rama 2: "hl mnd"
-   Resultado: "HOLA MUNDO | hl mnd"
-   
-   Demuestra composición multinivel
--}
 
--- ============================================
--- FUNCIÓN PRINCIPAL - DEMOSTRACIÓN
--- ============================================
+
+
+
+------------------------------------------------------------------------------
+-- FUNCIÓN PRINCIPAL
+------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------
+-- SUITE DE PRUEBAS (Ejecución y Formato)
+--------------------------------------------------------------------------
+
+-- Helper para imprimir
+imprimirPrueba :: (Show a, Show b) => String -> String -> a -> b -> IO ()
+imprimirPrueba nombreFunc descripcion input output = do
+    putStrLn $ ">> PRUEBA: " ++ nombreFunc
+    putStrLn $ "   Desc: " ++ descripcion
+    putStrLn $ "   Entrada: " ++ show input
+    putStrLn $ "   Salida:  " ++ show output
+    putStrLn "------------------------------------------------------------"
 
 main :: IO ()
 main = do
-  putStrLn "=========================================="
-  putStrLn "NORMALIZADOR DE TEXTO"
-  putStrLn "Composición (.) y Lambdas Anónimas"
-  putStrLn "=========================================="
-  putStrLn ""
-  
-  let texto = "  ¡Hola!!!  Mundo123  con    ESPACIOS   extra  "
-  
-  putStrLn $ "Texto original: \"" ++ texto ++ "\""
-  putStrLn ""
-  
-  putStrLn "--- TRANSFORMACIONES ATÓMICAS ---"
-  putStrLn "(Aplicación parcial de map/filter)"
-  putStrLn $ "aMinusculas: " ++ aMinusculas texto
-  putStrLn $ "aMayusculas: " ++ aMayusculas texto
-  putStrLn $ "soloAlfabeticos: " ++ soloAlfabeticos texto
-  putStrLn $ "sinVocales: " ++ sinVocales texto
-  putStrLn $ "invertirPalabras: " ++ invertirPalabras texto
-  putStrLn ""
-  
-  putStrLn "--- COMPOSICIONES SIMPLES ---"
-  putStrLn "(Composición binaria y ternaria)"
-  putStrLn $ "normalizacionBasica: " ++ normalizacionBasica texto
-  putStrLn $ "normalizacionEstricta: " ++ normalizacionEstricta texto
-  putStrLn $ "normalizacionTitulo: " ++ normalizacionTitulo texto
-  putStrLn $ "codificacionDivertida: " ++ codificacionDivertida texto
-  putStrLn ""
-  
-  putStrLn "--- COMBINADORES AVANZADOS ---"
-  putStrLn "(Lógica combinatoria)"
-  putStrLn $ "ejemplo3 (condicional): " ++ ejemplo3 texto
-  putStrLn $ "ejemplo4 (aplicar 2 veces): " ++ ejemplo4 "Hola Mundo"
-  putStrLn $ "ejemplo5 (bifurcación): " ++ ejemplo5 texto
-  putStrLn ""
-  
-  putStrLn "--- PIPELINE DINÁMICO ---"
-  putStrLn "(Metaprogramación con foldr)"
-  let miPipeline = pipeline [aMayusculas, sinVocales, eliminarEspaciosExtra]
-  putStrLn $ "Pipeline custom: " ++ miPipeline texto
-  putStrLn ""
-  
-  putStrLn "--- COMPOSICIONES COMPLEJAS ---"
-  putStrLn "(Composición n-aria)"
-  putStrLn $ "transformacionCompleja1 (5 funcs): " ++ transformacionCompleja1 texto
-  putStrLn $ "transformacionBifurcada: " ++ transformacionBifurcada texto
-  putStrLn ""
-  
-  putStrLn "--- PROCESAMIENTO DE LISTAS ---"
-  putStrLn "(map con aplicación parcial)"
-  let corpus = ["HOLA mundo", "  texto  ", "Ejemplo123!!!"]
-  putStrLn "Corpus original:"
-  mapM_ (putStrLn . ("  - " ++)) corpus
-  putStrLn "Corpus normalizado:"
-  mapM_ (putStrLn . ("  - " ++)) (normalizarCorpus corpus)
-  putStrLn ""
-  
-  putStrLn "=========================================="
-  putStrLn "Todos los conceptos demostrados:"
-  putStrLn "  ✓ Currificación (todas las funciones)"
-  putStrLn "  ✓ Aplicación parcial (map, filter, etc.)"
-  putStrLn "  ✓ Composición (.) (pipelines)"
-  putStrLn "  ✓ Lambdas anónimas (predicados, lógica)"
-  putStrLn "  ✓ Lógica combinatoria (foldr, pipeline)"
-  putStrLn "  ✓ Point-free style (sin parámetros)"
-  putStrLn "=========================================="
+    putStrLn "------------------------------------------------------------"
+    putStrLn "                EJECUCIÓN TEXT NORMALIZER"
+    putStrLn "------------------------------------------------------------"
+    putStrLn ""
+
+    -- 1. Transformaciones Atómicas
+    imprimirPrueba "aMinusculas" 
+                   "Convertir todo a minúsculas" 
+                   "¡Haskell Es UN LENGUAJE Puramente FUNCIONAL!" 
+                   (aMinusculas "¡Haskell Es UN LENGUAJE Puramente FUNCIONAL!")
+
+    imprimirPrueba "aMayusculas" 
+                   "Convertir todo a mayúsculas" 
+                   "e-mail: usuario@ejemplo.com" 
+                   (aMayusculas "e-mail: usuario@ejemplo.com")
+
+    imprimirPrueba "eliminarEspaciosExtra" 
+                   "Normalizar espaciado irregular" 
+                   "   Este    texto   tiene    demasiados      espacios.   " 
+                   (eliminarEspaciosExtra "   Este    texto   tiene    demasiados      espacios.   ")
+
+    imprimirPrueba "soloAlfabeticos" 
+                   "Mantener solo letras y espacios (elimina puntuación/nums)" 
+                   "ID: 4829-AZ, Fecha: 12/12/2024. ¡Aprobado!" 
+                   (soloAlfabeticos "ID: 4829-AZ, Fecha: 12/12/2024. ¡Aprobado!")
+
+    imprimirPrueba "sinVocales" 
+                   "Eliminar vocales (estilo abreviado)" 
+                   "Murcielago volador ultrasonico" 
+                   (sinVocales "Murcielago volador ultrasonico")
+
+    imprimirPrueba "invertirPalabras" 
+                   "Invertir cada palabra individualmente" 
+                   "Anita lava la tina" 
+                   (invertirPalabras "Anita lava la tina")
+
+    imprimirPrueba "capitalizarPalabras" 
+                   "Formato Título (Title Case)" 
+                   "el ingenioso hidalgo don quijote de la mancha" 
+                   (capitalizarPalabras "el ingenioso hidalgo don quijote de la mancha")
+
+    -- 2. Composiciones
+    putStrLn "\n--- COMPOSICIONES ---"
+    
+    imprimirPrueba "normalizacionBasica" 
+                   "Trim + Minúsculas" 
+                   "  HOLA   MUNDO   " 
+                   (normalizacionBasica "  HOLA   MUNDO   ")
+
+    imprimirPrueba "normalizacionEstricta" 
+                   "Trim + Minúsculas + Solo Letras" 
+                   "¡¡ERROR 404: PÁGINA NO ENCONTRADA!!" 
+                   (normalizacionEstricta "¡¡ERROR 404: PÁGINA NO ENCONTRADA!!")
+
+    imprimirPrueba "normalizacionTitulo" 
+                   "Limpiar, Solo Letras y Capitalizar" 
+                   "--- reporte final: versión 2.0 ---" 
+                   (normalizacionTitulo "--- reporte final: versión 2.0 ---")
+
+    imprimirPrueba "reversaSinVocales" 
+                   "Mayúsculas, Sin Vocales, Invertido (Criptico)" 
+                   "Secret Message" 
+                   (reversaSinVocales "Secret Message")
+
+    -- 3. Combinadores de Orden Superior
+    putStrLn "\n--- COMBINADORES DE ORDEN SUPERIOR ---"
+
+    imprimirPrueba "pipeline" 
+                   "Ejecutar lista: [sinVocales, capitalizar, reverse]" 
+                   "Funcional" 
+                   (pipeline [sinVocales, capitalizarPalabras, reverse] "Funcional")
+                   -- Nota: reverse invierte todo el string, capitalizar arregla el casing, sinVocales quita vocales
+
+    imprimirPrueba "aplicarN" 
+                   "Aplicar 3 veces 'capitalizarPalabras' (Idempotencia)" 
+                   "texto de prueba" 
+                   (aplicarN 3 capitalizarPalabras "texto de prueba")
+
+    imprimirPrueba "aplicarSi (True)" 
+                   "Mayúsculas SI longitud > 5" 
+                   "palabraLarga" 
+                   (aplicarSi (\s -> length s > 5) aMayusculas "palabraLarga")
+
+    imprimirPrueba "aplicarSi (False)" 
+                   "Mayúsculas SI longitud > 5" 
+                   "corta" 
+                   (aplicarSi (\s -> length s > 5) aMayusculas "corta")
+
+    imprimirPrueba "bifurcar" 
+                   "Combinar versión en mayúsculas y versión invertida con guión" 
+                   "Haskell" 
+                   (bifurcar (\a b -> a ++ " --- " ++ b) aMayusculas reverse "Haskell")
+
+    -- 4. Listas y Corpus
+    putStrLn "\n--- TRANSFORMACIONES SOBRE LISTAS ---"
+
+    let corpus = ["  Introducción a Haskell  ", "CAPÍTULO 1: Funciones!!", "capítulo 2: Tipos..."]
+    
+    imprimirPrueba "normalizarCorpus" 
+                   "Limpieza estricta de una lista de capítulos" 
+                   corpus 
+                   (normalizarCorpus corpus)
+
+    imprimirPrueba "procesarConVariantes" 
+                   "Generar matriz de variantes para un solo texto" 
+                   ["Texto de Ejemplo"] 
+                   (procesarConVariantes ["Texto de Ejemplo"])
+
+    imprimirPrueba "filtrarPorLongitud" 
+                   "Normalizar y quitar strings menores a 5 chars" 
+                   ["Hi", "  Hello  ", "Ok", "Goodbye"] 
+                   (filtrarPorLongitud 5 ["Hi", "  Hello  ", "Ok", "Goodbye"])
+
+    -- 5. Ejemplos Avanzados
+    putStrLn "\n--- EJEMPLOS AVANZADOS ---"
+
+    imprimirPrueba "ejemplo5 (Bifurcación)" 
+                   "Normalizar y anexar metadatos de longitud" 
+                   "  Contraseña Secreta  " 
+                   (ejemplo5 "  Contraseña Secreta  ")
+
+    imprimirPrueba "transformacionCompleja" 
+                   "Pipeline de 5 pasos sobre frase compleja" 
+                   "¿Logrará esto funcionar?" 
+                   (transformacionCompleja "¿Logrará esto funcionar?")
+    
+    imprimirPrueba "transformacionBifurcada" 
+                   "Dos ramas: (Mayus+Alfa) | (Minus+SinVocales)" 
+                   "Input 123 Test" 
+                   (transformacionBifurcada "Input 123 Test")

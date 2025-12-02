@@ -2,8 +2,8 @@
 
 **Integrantes**
 
-- Figueroa Rojas Emiliano - 
-- Gómez Calva Carlos Manuel - 
+- Figueroa Rojas Emiliano - 321088628
+- Gómez Calva Carlos Manuel - 321281678
 - González Téllez Lorena - 321288952
 
 ## Implementación práctica
@@ -20,23 +20,18 @@ La implementación del proyecto fue realizada con Haskell. Requisitos Previos:
 
 - GHC (Glasgow Haskell Compiler) instalado
 
-## Iniciar el interpretador interactivo
-ghci TextNormalizer.hs
+## Contenido
 
-### Probar funciones individuales
-ghci> normalizacionBasica "  HOLA   mundo  "
-"hola mundo"
+La implementación de este programa implementa los conceptos para poder normalizar texto.
 
-ghci> normalizacionEstricta "Hola123 Mundo!!!"
-"hola mundo"
+## Ejecución
 
-ghci> codificacionDivertida "Hola Mundo"
-"LH DNUM"
+En terminal ejecutar:
+```bash
+ghci Main.hs
+```
 
-### Crear composiciones personalizadas
-ghci> let miFunc = aMayusculas . eliminarEspaciosExtra
-ghci> miFunc "  hola   mundo  "
-"HOLA MUNDO"
-
-### Ejecutar el programa de demostración completo
-ghci> main
+Llamar la función principal para ver las ejecuciones de las funciones implementadas:
+```bash
+main
+```

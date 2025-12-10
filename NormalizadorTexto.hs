@@ -1,7 +1,7 @@
 -- NORMALIZACIÓN DE TEXTO
 -- 
 
-module TextNormalizer where
+module NormalizadorTexto where
 
 import Data.Char (toLower, toUpper, isAlpha, isSpace)
 import Data.List (intercalate)

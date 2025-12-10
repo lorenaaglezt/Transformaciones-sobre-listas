@@ -29,3 +29,23 @@ main
 ```
 
 Así mismo, se pueden ejecutar las transformaciones sobre distintas cadenas, como:
+```
+normalizacionTitulo "desde la terminal"
+```
+-- Resultado: "Desde La Terminal"
+
+```
+pipeline [reverse, aMayusculas] "lenguajes"
+```
+-- Resultado: "SEJAUGNEL"
+
+```
+normalizarCorpus [" LECHE ", "Pan..Integral", "Huevos!!"]
+```
+-- Resultado: ["leche","panintegral","huevos"]
+
+```
+let comentarios = ["ok", "excelente servicio", "bye", "muy bueno", "xo"]
+filtrarPorLongitud 5 comentarios
+```
+-- Resultado: ["excelente servicio","muy bueno"]

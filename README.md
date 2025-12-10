@@ -14,24 +14,3 @@ En el presente proyecto, como parte práctica del desarrollo del mismo, presenta
 
 Plasmar cómo se construyen programas complejos combinando pequeñas expresiones lambda mediante composición y aplicación parcial, implementando un conjunto de transformaciones sobre listas de texto usando únicamente el operador de composición (.) y lambdas anónimas.
 
-## Requisitos
-
-La implementación del proyecto fue realizada con Haskell. Requisitos Previos:
-
-- GHC (Glasgow Haskell Compiler) instalado
-
-## Contenido
-
-La implementación de este programa implementa los conceptos para poder normalizar texto.
-
-## Ejecución
-
-En terminal ejecutar:
-```bash
-ghci Main.hs
-```
-
-Llamar la función principal para ver las ejecuciones de las funciones implementadas:
-```bash
-main
-```
